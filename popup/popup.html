@@ -1,213 +1,273 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sidekick</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #17181d;
+      color: #e8e8ec;
+    }
 
-    <meta charset="UTF-8">
+    * { box-sizing: border-box; }
 
-    <title>Docsense AI</title>
+    body {
+      width: 360px;
+      max-height: 600px;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      background: #17181d;
+    }
 
-    <style>
-        body {
-            width: 300px;
-            padding: 18px;
-            font-family: sans-serif;
-            background: #111827;
-            color: white;
-        }
+    button, input, select, textarea { font: inherit; }
+    button { color: inherit; }
 
-        h2 {
-            margin: 0 0 8px;
-            font-size: 20px;
-        }
+    .header {
+      height: 66px;
+      flex: 0 0 66px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      border-bottom: 1px solid #34353d;
+    }
 
-        .subtitle {
-            opacity: .8;
-            font-size: 13px;
-            line-height: 1.5;
-            margin-bottom: 18px;
-        }
+    .brand { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; }
+    .brand-mark {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: #30394c;
+      color: #f3f4f8;
+    }
 
-        input,
-        select {
-            width: 100%;
-            height: 36px;
-            padding: 0 14px;
-            border: none;
-            outline: none;
-            border-radius: 10px;
-            background: #1f2937;
-            color: white;
-            font-size: 15px;
-            box-sizing: border-box;
-            margin-bottom: 12px;
-        }
+    .icon-button {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: #a7a9b5;
+      cursor: pointer;
+    }
 
-        button {
-            width: 100%;
-            height: 36px;
-            margin-top: 0;
-            margin-bottom: 12px;
-            border: none;
-            border-radius: 10px;
-            background: #8b5cf6;
-            color: white;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s ease;
-        }
-
-        button:hover {
-            background: #7c3aed;
-        }
-
-        .secondary-button {
-            background: #27272a;
-        }
-
-        .secondary-button:hover {
-            background: #3f3f46;
-        }
-
-        .status {
-            margin-top: 14px;
-            font-size: 14px;
-            opacity: 0.8;
-        }
-
-        .status:empty {
-            display: none;
-        }
-
-        .popup-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 8px;
-        }
-
-        .popup-header h2 {
-            margin: 0;
-        }
-
-        .mode-toggle {
-            width: 34px;
-            height: 34px;
-            min-width: 34px;
-            padding: 4px;
-            margin: 0;
-            border: 2px solid #4b5563;
-            border-radius: 50%;
-            background: #27272a;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .mode-toggle:hover {
-            background: #3f3f46;
-        }
-
-        .mode-toggle.active {
-            border-color: #a78bfa;
-            background: #4c1d95;
-        }
-
-        .mode-toggle img {
-            width: 24px;
-            height: 24px;
-            object-fit: contain;
-        }
-    </style>
-
+    .icon-button:hover, .nav-button:hover .nav-icon { background: #292b34; color: #fff; }
+    main { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 18px 14px; }
+    [hidden] { display: none !important; }
+    h1 { margin: 0 0 6px; font-size: 21px; letter-spacing: -.3px; }
+    h2 { margin: 0 0 12px; font-size: 17px; }
+    p { margin: 0; color: #a4a5b1; line-height: 1.5; font-size: 13px; }
+    .field { display: block; margin: 0 0 12px; }
+    .field span { display: block; margin-bottom: 6px; color: #b7b8c2; font-size: 12px; }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid #3b3d48;
+      border-radius: 10px;
+      outline: none;
+      background: #22242c;
+      color: #f0f0f3;
+      padding: 10px 12px;
+    }
+    input, select { height: 40px; }
+    textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
+    input:focus, select:focus, textarea:focus { border-color: #8c8ff6; }
+    .primary-button, .secondary-button {
+      min-height: 40px;
+      padding: 9px 14px;
+      border: 0;
+      border-radius: 10px;
+      background: #7378df;
+      color: #fff;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    .primary-button:hover { background: #8589ed; }
+    .primary-button:disabled { opacity: .6; cursor: wait; }
+    .secondary-button { background: #30323d; }
+    .action-row { display: flex; gap: 8px; }
+    .action-row > * { flex: 1; }
+    #askView { display: flex; flex-direction: column; min-height: 100%; }
+    .chat-history {
+      flex: 1;
+      min-height: 130px;
+      margin: 14px 0 10px;
+      overflow-y: auto;
+      border-radius: 10px;
+      color: #e1e1e8;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .chat-message { margin: 0 0 10px; padding: 10px; border-radius: 9px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .chat-message.user { margin-left: 24px; background: #343749; }
+    .chat-message.assistant { margin-right: 12px; background: #2b2d36; }
+    .jump-button {
+      display: block;
+      width: 100%;
+      margin-top: 9px;
+      padding: 9px 10px;
+      border: 0;
+      border-radius: 8px;
+      background: #393b4a;
+      color: #eeeef5;
+      text-align: left;
+      cursor: pointer;
+    }
+    .jump-button:hover { background: #4a4d61; }
+    .ask-form { display: flex; flex-direction: column; gap: 8px; }
+    .ask-form textarea { min-height: 72px; resize: vertical; }
+    .settings-tabs { display: flex; gap: 8px; margin: 14px 0; }
+    .settings-tab {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #3b3d48;
+      border-radius: 9px;
+      background: #22242c;
+      color: #b7b8c2;
+      cursor: pointer;
+    }
+    .settings-tab[aria-selected="true"] { border-color: #7378df; color: #fff; background: #303442; }
+    .settings-panel { min-height: 0; }
+    .settings-profile { padding: 12px; border-radius: 10px; background: #22242c; }
+    .status { min-height: 18px; margin-top: 10px; color: #b9b9c5; font-size: 12px; }
+    .status:empty { display: none; }
+    .status.error { color: #ff9a9a; }
+    .nav {
+      flex: 0 0 86px;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 8px 7px 10px;
+      border-top: 1px solid #34353d;
+    }
+    .nav-button {
+      min-width: 58px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: #b7b8c2;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .nav-icon {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #303442;
+      color: #f5f5f8;
+      transition: background .15s, color .15s;
+    }
+    .nav-button[aria-current="page"] .nav-icon { background: #454967; color: #fff; }
+    .nav-button[aria-pressed="true"] .nav-icon { background: #595fae; color: #fff; }
+    .nav-button svg { width: 21px; height: 21px; }
+  </style>
 </head>
-
 <body>
-
-    <div class="popup-header">
-        <h2>Docsense AI</h2>
-
-        <button
-            id="cheatModeToggle"
-            class="mode-toggle"
-            type="button"
-            title="Enable Cheat Mode"
-            aria-label="Toggle Cheat Mode"
-            aria-pressed="false"
-        >
-            <img
-                src="../images/Incognito.png"
-                alt=""
-            />
-        </button>
+  <header class="header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <rect x="4" y="6" width="16" height="13" rx="4" stroke="currentColor" stroke-width="2"/>
+          <path d="M9 4v2m6-2v2M8 12h.01M16 12h.01M9 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span>Sidekick</span>
     </div>
-
-    <div class="subtitle">
-
-        Docsense currently uses Google's Gemini API.
-        Generate a free API key and paste it below.
-
-    </div>
-
-    <input type="password" id="apiKeyInput" placeholder="Enter Gemini API Key" />
-
-    <select id="modelSelect">
-
-        <option value="gemini-2.5-flash">
-            Gemini 2.5 Flash
-        </option>
-
-        <option value="gemini-2.5-pro">
-            Gemini 2.5 Pro
-        </option>
-
-        <option value="gemini-3.5-flash">
-            Gemini 3.5 Flash
-        </option>
-
-        <option value="gemini-3.5-flash-lite" selected>
-            Gemini 3.5 Flash-Lite
-        </option>
-
-        <option value="gemini-3.6-flash">
-            Gemini 3.6 Flash
-        </option>
-
-        <option value="gemini-3.1-pro-preview">
-            Gemini 3.1 Pro Preview
-        </option> 
-
-        <option value="custom">
-            Custom Model...
-        </option>
-
-    </select>
-
-    <input type="text" id="customModelInput" placeholder="Enter Gemini model name" style="display: none;" />
-
-    <button id="getApiKeyButton" class="secondary-button">
-
-        Get Gemini API Key
-
+    <button id="headerSettings" class="icon-button" type="button" aria-label="Open settings" title="Settings">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z" stroke="currentColor" stroke-width="1.8"/>
+        <path d="m19.4 15 .1.1a1.8 1.8 0 0 1-2.5 2.5l-.1-.1a1.8 1.8 0 0 0-3 .9v.2a1.8 1.8 0 0 1-3.6 0v-.2a1.8 1.8 0 0 0-3-.9l-.1.1a1.8 1.8 0 0 1-2.5-2.5l.1-.1a1.8 1.8 0 0 0-.9-3H3.7a1.8 1.8 0 0 1 0-3.6h.2a1.8 1.8 0 0 0 .9-3l-.1-.1a1.8 1.8 0 0 1 2.5-2.5l.1.1a1.8 1.8 0 0 0 3-.9v-.2a1.8 1.8 0 0 1 3.6 0v.2a1.8 1.8 0 0 0 3 .9l.1-.1a1.8 1.8 0 0 1 2.5 2.5l-.1.1a1.8 1.8 0 0 0 .9 3h.2a1.8 1.8 0 0 1 0 3.6h-.2a1.8 1.8 0 0 0-.9 3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      </svg>
     </button>
+  </header>
 
-    <button id="saveButton">
+  <main id="mainContent" hidden>
+    <section class="view" id="askView" hidden>
+      <h1>Ask AI</h1>
+      <p>Ask a question about the current webpage.</p>
+      <div class="chat-history" id="askResult" role="log" aria-live="polite"></div>
+      <form id="askForm" class="ask-form">
+        <label class="field" for="askInput">
+          <span>Your question</span>
+          <textarea id="askInput" rows="2" placeholder="Ask anything about this page..." required></textarea>
+        </label>
+        <button class="primary-button" id="askButton" type="submit">Ask AI</button>
+      </form>
+    </section>
 
-        Save Gemini API Key
+    <section class="view" id="settingsView" hidden>
+      <h1>Settings</h1>
+      <div class="settings-tabs" role="tablist" aria-label="Settings sections">
+        <button class="settings-tab" id="generalSettingsTab" type="button" role="tab" aria-controls="generalSettingsPanel" aria-selected="true">General</button>
+        <button class="settings-tab" id="profileSettingsTab" type="button" role="tab" aria-controls="profileSettingsPanel" aria-selected="false">Profile</button>
+      </div>
+      <section class="settings-panel" id="generalSettingsPanel" role="tabpanel" aria-labelledby="generalSettingsTab">
+        <p style="margin-bottom:16px">Configure Gemini and your response preferences.</p>
+        <label class="field" for="apiKeyInput">
+          <span>Gemini API key</span>
+          <input type="password" id="apiKeyInput" autocomplete="off" placeholder="Enter Gemini API key">
+        </label>
+        <label class="field" for="modelSelect">
+          <span>Gemini model</span>
+          <select id="modelSelect">
+            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+            <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+            <option value="gemini-3.5-flash-lite" selected>Gemini 3.5 Flash-Lite</option>
+            <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
+            <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro Preview</option>
+            <option value="custom">Custom model...</option>
+          </select>
+        </label>
+        <label class="field" id="customModelField" for="customModelInput" hidden>
+          <span>Custom model name</span>
+          <input type="text" id="customModelInput" placeholder="Enter Gemini model name">
+        </label>
+        <label class="field" for="customInstructions">
+          <span>Custom response instructions (optional)</span>
+          <textarea id="customInstructions" placeholder="For example: Keep answers concise and include examples."></textarea>
+        </label>
+        <div class="action-row">
+          <button class="secondary-button" id="getApiKeyButton" type="button">Get API key</button>
+          <button class="primary-button" id="saveSettingsButton" type="button">Save settings</button>
+        </div>
+        <div class="status" id="settingsStatus" role="status" aria-live="polite"></div>
+      </section>
+      <section class="settings-panel settings-profile" id="profileSettingsPanel" role="tabpanel" aria-labelledby="profileSettingsTab" hidden>
+        <h2>Profile</h2>
+        <p>Saved information for agentic tasks will be managed here in a future update.</p>
+      </section>
+    </section>
+  </main>
 
+  <div class="status" id="globalStatus" role="status" aria-live="polite" style="padding:0 18px"></div>
+  <nav class="nav" aria-label="Main navigation">
+    <button class="nav-button" id="selectToggle" type="button" aria-pressed="false" title="Toggle selection capture">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 3 14 12-7 .5L9 22 5 3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+      <span>Select</span>
     </button>
-
-    <button id="activateButton">
-
-        Activate Docsense
-
+    <button class="nav-button" type="button" data-view="ask" aria-label="Ask AI">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 11.5a8.5 8.5 0 0 1-12.3 7.6L4 20l.9-3.3A8.5 8.5 0 1 1 20 11.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+      <span>Ask AI</span>
     </button>
-
-    <div class="status" id="statusText"></div>
-
-    <script src="popup.js"></script>
-
+    <button class="nav-button" id="cheatModeToggle" type="button" aria-pressed="false" title="Toggle Cheat Mode">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 4h10l2 3v10l-2 3H7l-2-3V7l2-3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 10h.01M15 10h.01M9 15h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+      <span>Cheat Mode</span>
+    </button>
+  </nav>
+  <script src="popup.js"></script>
 </body>
-
 </html>

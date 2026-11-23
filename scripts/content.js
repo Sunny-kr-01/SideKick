@@ -9,20 +9,40 @@
     let selectionMode = false;
     let cheatModeEnabled = false;
 
-    chrome.storage.local.get(['docsenseCheatModeEnabled'], (result) => {
-        cheatModeEnabled = result.docsenseCheatModeEnabled === true;
-        applyCheatMode();
-    });
+    let capturedSelection = null;
+
+    chrome.storage.local.get(
+        [
+            'docsenseCheatModeEnabled',
+            'sidekickSelectionModeEnabled',
+            'sidekickLastSelection'
+        ],
+        (result) => {
+            cheatModeEnabled = result.docsenseCheatModeEnabled === true;
+            selectionMode = result.sidekickSelectionModeEnabled === true;
+            capturedSelection = result.sidekickLastSelection || null;
+            applyCheatMode();
+        }
+    );
 
     chrome.storage.onChanged.addListener((changes, areaName) => {
-        if (
-            areaName === 'local' &&
-            changes.docsenseCheatModeEnabled
-        ) {
+        if (areaName !== 'local') return;
+
+        if (changes.docsenseCheatModeEnabled) {
             cheatModeEnabled =
                 changes.docsenseCheatModeEnabled.newValue === true;
 
             applyCheatMode();
+        }
+
+        if (changes.sidekickSelectionModeEnabled) {
+            selectionMode =
+                changes.sidekickSelectionModeEnabled.newValue === true;
+        }
+
+        if (changes.sidekickLastSelection) {
+            capturedSelection =
+                changes.sidekickLastSelection.newValue || null;
         }
     });
 
@@ -343,11 +363,70 @@ function extractPageData() {
 
         sections: extractSections(root),
 
-        codeBlocks: extractCodeBlocks(root)
+        codeBlocks: extractCodeBlocks(root),
+
+        text: (root.innerText || '')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim()
+            .slice(0, 24000)
 
     };
 
 }
+
+function getPopupPageContext() {
+    const root = getArticleRoot();
+    const text = (root?.innerText || document.body?.innerText || '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim()
+        .slice(0, 24000);
+    const sections = (window.docsenseData?.sections || extractSections(root))
+        .slice(0, 60)
+        .map((section) => ({
+            heading: section.heading,
+            content: section.content.join('\n').slice(0, 1200)
+        }));
+
+    return {
+        url: window.location.href,
+        title: document.title,
+        text,
+        sections,
+        selection: capturedSelection?.url === window.location.href
+            ? capturedSelection
+            : null
+    };
+}
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message?.type === 'GET_PAGE_CONTEXT') {
+        sendResponse(getPopupPageContext());
+        return false;
+    }
+
+    if (message?.type === 'NAVIGATE_TO_SECTION') {
+        const heading = typeof message.heading === 'string'
+            ? message.heading.trim().toLowerCase()
+            : '';
+        const section = window.docsenseData?.sections?.find(
+            (item) => item.heading.trim().toLowerCase() === heading
+        );
+
+        if (!section?.element) {
+            sendResponse({ error: 'Could not find that section on the current page.' });
+            return false;
+        }
+
+        section.element.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+        });
+        sendResponse({ ok: true });
+        return false;
+    }
+
+    return false;
+});
 
 function addDocsenseTooltip(button) {
     const tooltip = document.createElement('span');
@@ -393,7 +472,7 @@ function styleInjectedButton(button) {
 
     button.src = chrome.runtime.getURL('images/logo.png');
 
-    button.alt = 'Docsense AI';
+    button.alt = 'Sidekick';
 
     button.style.width = '36px';
     button.style.height = '36px';
@@ -859,7 +938,7 @@ function createAssistantPopup(x, y, headingText) {
                 font-weight:700;
                 font-size:18px;
             ">
-                Docsense AI
+                Sidekick
             </div>
 
             <div class="docsense-close-btn" style="
@@ -1020,7 +1099,7 @@ function openCustomPromptDialog(x, y, contextTitle, contextContent) {
                     justify-content:space-between;
                     align-items:center;
                     margin-bottom:12px">
-            <div style="font-weight:700;font-size:18px">Docsense AI</div>
+            <div style="font-weight:700;font-size:18px">Sidekick</div>
             <button type="button" class="docsense-custom-close"
                 aria-label="Close"
                 style="
@@ -1074,7 +1153,7 @@ function openCustomPromptDialog(x, y, contextTitle, contextContent) {
                        border:0;border-radius:12px;background:#8b5cf6;
                        color:white;font-weight:600;font-size:14px;
                        cursor:pointer;white-space:nowrap">
-                Ask Docsense
+                Ask Sidekick
             </button>
 
         </div>
@@ -1174,7 +1253,7 @@ function openCustomPromptDialog(x, y, contextTitle, contextContent) {
         responseElement.innerText = 'Thinking...';
 
         const prompt = `
-You are Docsense AI, a helpful programming and learning assistant.
+You are Sidekick, a helpful programming and learning assistant.
 
 Current page URL:
 ${window.location.href}
@@ -1191,7 +1270,7 @@ ${instruction}
 Follow the user's instruction directly. Start with the answer, not a greeting,
 introduction, or announcement about being an AI assistant.
 
-Avoid generic openings such as "Hello!", "Hi!", or "I am Docsense AI".
+Avoid generic openings such as "Hello!", "Hi!", or "I am Sidekick".
 Do not repeat the user's question unnecessarily.
 
 Use clear, readable Markdown with appropriate headings, lists, code blocks,
@@ -1227,7 +1306,7 @@ Never claim that information appears on the page if it does not.
         } finally {
 
             askButton.disabled = false;
-            askButton.innerText = 'Ask Docsense';
+            askButton.innerText = 'Ask Sidekick';
 
         }
     });
@@ -1385,7 +1464,7 @@ async function renderDocsenseMath(element) {
             ]
         });
     } catch (error) {
-        console.error('[DocSenseAI] KaTeX loading error:', error);
+        console.error('[Sidekick] KaTeX loading error:', error);
     }
 }
 
@@ -1446,7 +1525,7 @@ function openSearchAssistant() {
             margin-bottom:14px;
             padding-right:36px;
         ">
-            Docsense AI
+            Sidekick
         </div>
 
         <button type="button" class="docsense-search-close"
@@ -1580,7 +1659,7 @@ function openSearchAssistant() {
 
             } catch (error) {
                 console.error(
-                    'DocSenseAI Search Assistant error:',
+                    'Sidekick Search Assistant error:',
                     error
                 );
 
@@ -1612,10 +1691,10 @@ function openSearchAssistant() {
 
 }
 
-function buildDocumentationPrompt(title, content) {
+function buildHeadingPrompt(title, content) {
 
     return `
-You are Docsense AI, an expert documentation assistant.
+You are Sidekick, an expert AI browser assistant.
 
 Current Page URL:
 ${window.location.href}
@@ -1623,7 +1702,7 @@ ${window.location.href}
 Section Title:
 ${title}
 
-Documentation:
+Content under this heading:
 ${content}
 
 Response Format:
@@ -1631,7 +1710,7 @@ Response Format:
 IMPORTANT OPENING RULES:
 - Start immediately with the explanation of the topic.
 - Never begin with a greeting such as "Hello" or "Hi".
-- Never introduce yourself as Docsense AI.
+- Never introduce yourself as Sidekick.
 - Never announce that you are about to explain or summarize the section.
 - Do not write phrases like "Here is the overview" or "Let's explore".
 - The first sentence must contain useful information about the topic.
@@ -1661,7 +1740,7 @@ Requirements:
 function buildCodePrompt(code) {
 
     return `
-You are Docsense AI, an expert programming mentor.
+You are Sidekick, an expert programming mentor.
 
 Current Page URL:
 ${window.location.href}
@@ -1673,7 +1752,7 @@ Response Format:
 
 IMPORTANT OPENING RULES:
 - Start directly by explaining what the code does.
-- Never greet the user or introduce yourself as Docsense AI.
+- Never greet the user or introduce yourself as Sidekick.
 - Do not announce that you are about to explain the code.
 - Avoid generic openings such as "Hello", "Here is the explanation",
   or "Let's break this down".
@@ -1717,7 +1796,7 @@ The full explanation should usually fit within 250-350 words.
 function buildSelectionPrompt(text) {
 
     return `
-You are Docsense AI, an expert learning and documentation assistant.
+You are Sidekick, an expert learning and webpage assistant.
 
 Current Page URL:
 ${window.location.href}
@@ -1745,108 +1824,52 @@ RESPONSE FORMAT:
 
 }
 
-async function askAI(prompt) {
-
+function askAI(prompt) {
     return new Promise((resolve) => {
-
-        chrome.storage.local.get(
-            ['geminiApiKey', 'geminiModel'],
-            (result) => {
-
-                const apiKey = result.geminiApiKey;
-                const geminiModel = result.geminiModel || 'gemini-3.5-flash-lite';
-
-                if (!apiKey) {
-                    resolve('No Gemini API key found.');
+        chrome.runtime.sendMessage(
+            { type: 'ASK_GEMINI', prompt },
+            (response) => {
+                if (chrome.runtime.lastError) {
+                    console.error(chrome.runtime.lastError);
+                    resolve('Failed to contact background service worker.');
                     return;
                 }
 
+                if (response?.error) {
+                    const errorMessage =
+                        response.error.message || 'Unknown AI error';
+                    const lower = errorMessage.toLowerCase();
 
-
-                chrome.runtime.sendMessage(
-                    {
-                        type: 'ASK_GEMINI',
-                        prompt,
-                        apiKey,
-                        model: geminiModel
-                    },
-
-                    (response) => {
-
-                        if (chrome.runtime.lastError) {
-                            console.error(chrome.runtime.lastError);
-                            resolve('Failed to contact background service worker.');
-                            return;
-                        }
-
-                        try {
-
-                            if (response?.error) {
-
-                                const errorMessage =
-                                    response.error.message ||
-                                    'Unknown AI error';
-
-                                const lower =
-                                    errorMessage.toLowerCase();
-
-                                if (
-                                    lower.includes('quota') ||
-                                    lower.includes('429')
-                                ) {
-
-                                    resolve(
-                                        'Gemini API quota exceeded.\n\nYour API key has reached its usage limit.\n\nPlease wait for quota reset or use another API key.'
-                                    );
-
-                                    return;
-
-                                }
-
-                                if (
-                                    lower.includes('503') ||
-                                    lower.includes('busy') ||
-                                    lower.includes('overloaded') ||
-                                    lower.includes('unavailable')
-                                ) {
-
-                                    resolve(
-                                        'Gemini is currently under heavy load.\n\nRetrying after a few seconds often fixes this issue.'
-                                    );
-
-                                    return;
-
-                                }
-
-                                resolve(errorMessage);
-
-                                return;
-
-                            }
-
-                            const text =
-                                response?.candidates?.[0]
-                                    ?.content?.parts
-                                    ?.map(part => part.text)
-                                    ?.join('\n');
-
-                            resolve(text || 'No AI response');
-
-                        } catch (error) {
-
-                            console.error(error);
-                            resolve('AI response parsing failed');
-
-                        }
-
+                    if (lower.includes('quota') || lower.includes('429')) {
+                        resolve(
+                            'Gemini API quota exceeded.\n\nYour API key has reached its usage limit.\n\nPlease wait for quota reset or use another API key.'
+                        );
+                        return;
                     }
-                );
 
+                    if (
+                        lower.includes('503') ||
+                        lower.includes('busy') ||
+                        lower.includes('overloaded') ||
+                        lower.includes('unavailable')
+                    ) {
+                        resolve(
+                            'Gemini is currently under heavy load.\n\nRetrying after a few seconds often fixes this issue.'
+                        );
+                        return;
+                    }
+
+                    resolve(errorMessage);
+                    return;
+                }
+
+                const text = response?.candidates?.[0]?.content?.parts
+                    ?.map((part) => part.text)
+                    ?.join('\n');
+                resolve(text || 'No AI response');
             }
         );
-
     });
-
 }
 
 async function askSearchAI(userQuery) {
@@ -1910,7 +1933,7 @@ ${section.content
         ).join('\n\n');
 
     const prompt = `
-You are DocSenseAI, a documentation learning and implementation assistant.
+You are Sidekick, a webpage learning and implementation assistant.
 
 CURRENT PAGE:
 ${data.url}
@@ -2155,6 +2178,19 @@ function injectHeadingButtons(sections) {
         );
 
         styleInjectedButton(button);
+        button.style.opacity = '0';
+        button.style.pointerEvents = 'none';
+        button.style.transition = 'opacity 0.18s ease, transform 0.18s ease';
+
+        headingElement.addEventListener('mouseenter', () => {
+            button.style.opacity = '0.88';
+            button.style.pointerEvents = 'auto';
+        });
+
+        headingElement.addEventListener('mouseleave', () => {
+            button.style.opacity = '0';
+            button.style.pointerEvents = 'none';
+        });
 
         button.addEventListener(
             'click',
@@ -2189,7 +2225,7 @@ function injectHeadingButtons(sections) {
 
 
                 const prompt =
-                    buildDocumentationPrompt(
+                    buildHeadingPrompt(
                         sectionData.heading,
                         combinedContent
                     );
@@ -2763,46 +2799,57 @@ ${context}
 }
 
 function initializeSelectionMode() {
+    if (window.sidekickSelectionCaptureInitialized) {
+        return;
+    }
 
-    document.addEventListener(
-        'mouseup',
-        (event) => {
+    window.sidekickSelectionCaptureInitialized = true;
 
-            if (
-                event.composedPath().some(
-                    (target) =>
-                        target instanceof Element &&
-                        target.matches('.docsense-selection-actions')
-                )
-            ) {
-                return;
-            }
-
-            if (!selectionMode) {
-                return;
-            }
-
-            const selection = window.getSelection();
-            const text = getSelectionContext(selection);
-
-            if (!text.trim()) {
-                return;
-            }
-
-            const oldButton =
-                document.querySelector(
-                    '.docsense-selection-actions'
-                );
-
-            if (oldButton) {
-                oldButton.remove();
-            }
-
-            showSelectionExplainButton(text);
-
+    document.addEventListener('mouseup', (event) => {
+        if (!selectionMode) {
+            return;
         }
-    );
 
+        if (
+            event.composedPath().some(
+                (target) =>
+                    target instanceof Element &&
+                    target.matches('.docsense-popup, .docsense-selection-actions')
+            )
+        ) {
+            return;
+        }
+
+        const selection = window.getSelection();
+        const text = getSelectionContext(selection);
+        const selectedText = selection?.toString().trim();
+
+        if (!text.trim() || !selectedText) {
+            return;
+        }
+
+        capturedSelection = {
+            text,
+            selectedText,
+            url: window.location.href,
+            title: document.title,
+            capturedAt: new Date().toISOString()
+        };
+
+        chrome.storage.local.set(
+            { sidekickLastSelection: capturedSelection },
+            () => {
+                if (chrome.runtime.lastError) {
+                    console.error(
+                        'Sidekick could not save the selected text:',
+                        chrome.runtime.lastError.message
+                    );
+                }
+            }
+        );
+
+        showSelectionExplainButton(text);
+    });
 }
 
 
@@ -3202,7 +3249,7 @@ function applyCheatMode() {
 document.addEventListener('mouseup', (event) => {
     if (!cheatModeEnabled) return;
 
-    // Ignore selections made inside DocSenseAI UI.
+    // Ignore selections made inside Sidekick UI.
     if (event.target instanceof Element &&
         event.target.closest('#docsense-answer-dot, #docsense-inline-answer')) {
         return;
@@ -3342,7 +3389,7 @@ document.addEventListener('mouseup', (event) => {
         }, 0);
 
         const prompt = `
-You are DocSenseAI, an accurate academic problem-solving assistant.
+You are Sidekick, an accurate academic problem-solving assistant.
 
 Solve the question carefully and verify your answer before responding.
 
@@ -3373,7 +3420,7 @@ ${textToExplain}
                 );
             }
         } catch (error) {
-            console.error('[DocSenseAI] Request failed:', error);
+            console.error('[Sidekick] Request failed:', error);
 
             if (answer.isConnected) {
                 answer.textContent = 'Could not get a response. Please try again.';
@@ -3396,11 +3443,9 @@ function initializeDocsense() {
 
         injectCodeButtons(extractedData.codeBlocks);
 
-        injectFloatingSearchButton();
-
-        initializeSelectionMode();
-
     }
+
+    initializeSelectionMode();
 
 }
 
