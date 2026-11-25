@@ -1,5 +1,11 @@
 importScripts('./ai.js');
 
+chrome.sidePanel.setPanelBehavior({
+    openPanelOnActionClick: false
+}).catch((error) => {
+    console.error('[Sidekick] Could not restore popup toolbar behavior:', error);
+});
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message?.type !== 'ASK_GEMINI') {
         return false;

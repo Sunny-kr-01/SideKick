@@ -404,12 +404,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return false;
     }
 
-    if (message?.type === 'NAVIGATE_TO_SECTION') {
-        const heading = typeof message.heading === 'string'
-            ? message.heading.trim().toLowerCase()
-            : '';
-        const section = window.docsenseData?.sections?.find(
-            (item) => item.heading.trim().toLowerCase() === heading
+    if (
+        message?.type === 'NAVIGATE_TO_SECTION' ||
+        message?.type === 'GO_TO_SECTION'
+    ) {
+        const normalize = (value) => String(value ?? '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .toLowerCase();
+        const heading = normalize(message.heading);
+        const section = extractSections(getArticleRoot()).find(
+            (item) => normalize(item.heading) === heading
         );
 
         if (!section?.element) {

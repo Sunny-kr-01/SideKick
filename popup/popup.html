@@ -195,19 +195,6 @@
   </header>
 
   <main id="mainContent" hidden>
-    <section class="view" id="askView" hidden>
-      <h1>Ask AI</h1>
-      <p>Ask a question about the current webpage.</p>
-      <div class="chat-history" id="askResult" role="log" aria-live="polite"></div>
-      <form id="askForm" class="ask-form">
-        <label class="field" for="askInput">
-          <span>Your question</span>
-          <textarea id="askInput" rows="2" placeholder="Ask anything about this page..." required></textarea>
-        </label>
-        <button class="primary-button" id="askButton" type="submit">Ask AI</button>
-      </form>
-    </section>
-
     <section class="view" id="settingsView" hidden>
       <h1>Settings</h1>
       <div class="settings-tabs" role="tablist" aria-label="Settings sections">
@@ -259,7 +246,7 @@
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 3 14 12-7 .5L9 22 5 3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
       <span>Select</span>
     </button>
-    <button class="nav-button" type="button" data-view="ask" aria-label="Ask AI">
+    <button class="nav-button" id="openAskAi" type="button" aria-label="Open Ask AI side panel">
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 11.5a8.5 8.5 0 0 1-12.3 7.6L4 20l.9-3.3A8.5 8.5 0 1 1 20 11.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
       <span>Ask AI</span>
     </button>
